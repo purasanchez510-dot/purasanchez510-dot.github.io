@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DualRef-TTS: A Label-Free Dual-Reference Paradigm for Independent Style-Timbre Control in Zero-Shot Speech Synthesis</title>
+    <style>
+:root {
+  --ink:#1a1a1a; --muted:#6a737d; --rule:#e1e4e8; --paper:#ffffff;
+  --accent:#1a73e8; --accent-dark:#1557b0; --zebra:#fbfcfd;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue",
+               "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 56px 32px 24px;
+}
+.container + .container { padding-top: 0; }
+
+/* Header */
+h1 {
+  font-family: "Times New Roman", "Source Serif Pro", serif;
+  font-size: 34px;
+  line-height: 1.25;
+  font-weight: 700;
+  margin: 0 0 18px;
+  text-align: center;
+  color: #000;
+}
+.author {
+  text-align: center;
+  margin: 4px 0 28px;
+  color: var(--muted);
+  font-size: 15px;
+}
+.author p { margin: 0; }
+
+/* Section headers */
+h2 {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 56px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+  color: #111;
+}
+h3 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 28px 0 8px;
+  color: #222;
+}
+h4 {
+  font-size: 14.5px;
+  font-weight: 400;
+  margin: 0 0 18px;
+  color: #4a4a4a;
+  line-height: 1.7;
+}
+
+/* 轻量强调：蓝色斜体，无背景无加粗 */
+.highlight {
+  color: var(--accent-dark);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Contents */
+.contents {
+  margin: 20px 0 0;
+  padding: 18px 22px;
+  background: #f8f9fa;
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+}
+.contents h2 {
+  font-size: 16px;
+  border-bottom: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+.contents ul {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 14.5px;
+}
+.contents li { margin: 4px 0; }
+
+/* Demo table */
+.demo-section { margin: 8px 0 12px; }
+.table-container {
+  overflow-x: auto;
+  border-radius: 32px;
+  border: 1px solid var(--rule);
+  box-shadow: 0 8px 28px rgba(0,0,0,0.09);
+}
+table.zebra-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+.zebra-table thead th {
+  background: #e3f2fd;
+  color: #1557b0;
+  font-weight: 600;
+  font-size: 13px;
+  text-align: left;
+  padding: 13px 14px;
+  border-right: 1px solid #c5dbef;
+  border-bottom: 1px solid #c5dbef;
+  white-space: nowrap;
+}
+.zebra-table thead th:last-child { border-right: none; }
+.zebra-table thead th:first-child { border-top-left-radius: 31px; }
+.zebra-table thead th:last-child  { border-top-right-radius: 31px; }
+.zebra-table td {
+  padding: 14px;
+  border-bottom: 1px solid var(--rule);
+  border-right: 1px solid var(--rule);
+  vertical-align: middle;
+}
+.zebra-table td:last-child { border-right: none; }
+.zebra-table tbody tr:last-child td { border-bottom: none; }
+.zebra-table tbody tr:nth-child(odd) { background: var(--zebra); }
+.zebra-table tbody tr:hover { background: #eef5ff; }
+
+.zebra-table td.target-text {
+  color: #0a3d72;
+  font-weight: 500;
+  font-size: 18px;
+  line-height: 1.65;
+  min-width: 560px;
+}
+.demo-item audio {
+  width: 230px;
+  height: 32px;
+  display: block;
+}
+
+/* Footer */
+.footer {
+  margin: 80px 0 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12.5px;
+  padding-bottom: 24px;
+  border-top: 1px solid var(--rule);
+  padding-top: 22px;
+}
+
+@media (max-width: 900px) {
+  .container { padding: 40px 18px 16px; }
+  h1 { font-size: 26px; }
+  .zebra-table { font-size: 13px; }
+  .demo-item audio { width: 200px; height: 30px; }
+}
+    
+/* 2026-06-24: 整体放大, 视觉宽松一档 */
+body { font-size: 18px; line-height: 1.78; }
+.container { max-width: 1720px; padding: 56px 32px 24px; }
+h1 { font-size: 44px; }
+h2 { font-size: 30px; }
+h3 { font-size: 22px; }
+h4 { font-size: 18px; }
+table.zebra-table { font-size: 17px; }
+.zebra-table thead th { font-size: 19px; padding: 16px 20px; letter-spacing: 0.3px; }
+.zebra-table tbody td { padding: 16px 18px; }
+.target-text { font-size: 18px; line-height: 1.65; max-width: 520px; white-space: normal; word-break: break-word; }
+/* 2026-06-24: Contents 区放大 */
+.contents { padding: 24px 28px; border-radius: 8px; border-left-width: 5px; }
+.contents h2 { font-size: 26px; margin-bottom: 14px; }
+.contents ul { font-size: 21px; padding-left: 28px; }
+.contents li { margin: 8px 0; }
+
+/* 2026-06-24: 媒体组件宽敞一档 */
+.demo-item { padding: 4px 0; }
+.demo-item audio { width: 280px; height: 42px; display: block; }
+.zebra-table thead th:nth-child(1),
+.zebra-table thead th:nth-child(2),
+.zebra-table thead th:nth-child(4) { width: 320px; }
+</style>
+</head>
+<body>
+
+    <section class="container">
+        <h1>DualRef-TTS: A Label-Free Dual-Reference Paradigm for Independent Style-Timbre Control in Zero-Shot Speech Synthesis</h1>
+        <div class="author"><p>Anonymous</p></div>
+    </section>
+
+    <section class="container">
+        <div class="contents">
+            <h2>Contents</h2>
+            <ul>
+                <li><a href="#section1">1 Independent Zero-Shot Timbre-Style Control</a></li>
+                <li><a href="#section2">2 Cross-Lingual Zero-Shot Timbre-Style Control</a></li>
+                <li><a href="#section3">3 Emergent Paralinguistic Imitation</a></li>
+            </ul>
+        </div>
+    </section>
+
+    <section class="container" id="section1">
+        <h2>1 Independent Zero-Shot Timbre-Style Control</h2>
+        <h4><font class="highlight">DualRef-TTS independently controls timbre and style via two distinct references.</font> In each row, the <b>Timbre Reference</b> contributes the speaker identity, while the <b>Style Reference</b> contributes the prosodic and expressive characteristics, and the <b>Target Text</b> controls the specific content of the output.</h4>
+        <div class="demo-section">
+            <div class="table-container">
+                <table class="zebra-table">
+                    <thead>
+                        <tr>
+                            <th style="width:300px;">Timbre Reference</th>
+                            <th style="width:300px;">Style Reference</th>
+                            <th>Target Text</th>
+                            <th style="width:300px;">Synthesized</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/01/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/01/source_style.wav"></audio></div></td>
+                        <td class="target-text">Hurry up! We are running super late! I am already on my way, but I can not wait to see you.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/01/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/02/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/02/source_style.wav"></audio></div></td>
+                        <td class="target-text">注意，前方道路施工，请所有车辆缓慢通行。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/02/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/03/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/03/source_style.wav"></audio></div></td>
+                        <td class="target-text">The night will eventually pass, but the footprints left in the deep snow... will stay forever.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/03/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/04/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/04/source_style.wav"></audio></div></td>
+                        <td class="target-text">Do you actually believe I&#x27;d buy any more of your pathetic, transparent lies?</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/04/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/05/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/05/source_style.wav"></audio></div></td>
+                        <td class="target-text">这道菜的味道真的不错，下次还想再来吃一次。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/05/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/06/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/06/source_style.wav"></audio></div></td>
+                        <td class="target-text">This matter must be handled at once, we cannot afford to delay another minute.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/06/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/07/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/07/source_style.wav"></audio></div></td>
+                        <td class="target-text">Have a warm cup of water in the morning, then ease gently into your day.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/07/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/08/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/08/source_style.wav"></audio></div></td>
+                        <td class="target-text">不要怕，我会一直陪在你身边，永远不离开。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/08/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/09/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/09/source_style.wav"></audio></div></td>
+                        <td class="target-text">Stop fooling yourself, deep inside you have known the real answer all along.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/09/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/10/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/10/source_style.wav"></audio></div></td>
+                        <td class="target-text">I had such a weird dream last night, yet I cannot recall any of it.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/10/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/11/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/11/source_style.wav"></audio></div></td>
+                        <td class="target-text">听好了，这是我最后一次和你认真谈这件事。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/11/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/12/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/12/source_style.wav"></audio></div></td>
+                        <td class="target-text">Stop fooling yourself, deep inside you have known the real answer all along.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/12/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/13/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/13/source_style.wav"></audio></div></td>
+                        <td class="target-text">This matter must be handled at once, we cannot afford to delay another minute.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/13/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/14/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/14/source_style.wav"></audio></div></td>
+                        <td class="target-text">黑夜终究会过去，那些雪地脚印却永远不会消失。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/14/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/15/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/15/source_style.wav"></audio></div></td>
+                        <td class="target-text">别难过了，事情已经过去，我们要往前看。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/15/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part1/16/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/16/source_style.wav"></audio></div></td>
+                        <td class="target-text">你听过那个传说吗，据说半夜会有奇怪的声音。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part1/16/generated.wav"></audio></div></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="container" id="section2">
+        <h2>2 Cross-Lingual Zero-Shot Timbre-Style Control</h2>
+        <h4><font class="highlight">DualRef-TTS transfers timbre and style across languages.</font> Each row pairs a timbre reference and a style reference that may differ in language from each other and from the target text. The synthesized output preserves the speaker's timbre and the reference style while speaking the target sentence in its native language.</h4>
+        <div class="demo-section">
+            <div class="table-container">
+                <table class="zebra-table">
+                    <thead>
+                        <tr>
+                            <th style="width:300px;">Timbre Reference</th>
+                            <th style="width:300px;">Style Reference</th>
+                            <th>Target Text</th>
+                            <th style="width:300px;">Synthesized</th>
+                        </tr>
+                    </thead>
+                    <tbody><tr>
+                        <td><div class="demo-item"><audio controls src="samples/part2/01/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/01/source_style.wav"></audio></div></td>
+                        <td class="target-text">看着吧，这个领域的规则我会亲手重新定义。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/01/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part2/02/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/02/source_style.wav"></audio></div></td>
+                        <td class="target-text">This matter must be handled at once, we cannot afford to delay another minute.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/02/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part2/03/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/03/source_style.wav"></audio></div></td>
+                        <td class="target-text">这道菜的味道真的不错，下次还想再来吃一次。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/03/generated.wav"></audio></div></td>
+                    </tr>
+<tr>
+                        <td><div class="demo-item"><audio controls src="samples/part2/04/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/04/source_style.wav"></audio></div></td>
+                        <td class="target-text">今天的阳光特别好，适合把被子拿出来晒一晒。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/04/generated.wav"></audio></div></td>
+                    </tr>
+<tr>
+                        <td><div class="demo-item"><audio controls src="samples/part2/05/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/05/source_style.wav"></audio></div></td>
+                        <td class="target-text">Seeing that familiar name again, my hands simply wouldn&#x27;t stop trembling tonight.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/05/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part2/06/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/06/source_style.wav"></audio></div></td>
+                        <td class="target-text">Do you actually believe I&#x27;d buy any more of your pathetic, transparent lies?</td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/06/generated.wav"></audio></div></td>
+                    </tr>
+                    
+                                        <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part2/07/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/07/source_style.wav"></audio></div></td>
+                        <td class="target-text">冬天的早晨真的好冷，被窝里再多躺一分钟也好。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/07/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part2/08/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/08/source_style.wav"></audio></div></td>
+                        <td class="target-text">It rained the whole night through, streets wet, glowing under amber streetlamps.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/08/generated.wav"></audio></div></td>
+                    </tr>
+                                        <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part2/09/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/09/source_style.wav"></audio></div></td>
+                        <td class="target-text">这家咖啡馆的拿铁很香，奶泡绵密入口顺滑。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/09/generated.wav"></audio></div></td>
+                    </tr>
+                                        <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part2/10/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/10/source_style.wav"></audio></div></td>
+                        <td class="target-text">The dark night will pass, yet the footprints in the snow linger forever.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/10/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part2/11/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/11/source_style.wav"></audio></div></td>
+                        <td class="target-text">Everyone, please quiet down, the meeting is about to begin in just a moment.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/11/generated.wav"></audio></div></td>
+                    </tr>
+                                        <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part2/12/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/12/source_style.wav"></audio></div></td>
+                        <td class="target-text">夜深了，城市渐渐安静下来，只剩远处的车流声。</td>
+                        <td><div class="demo-item"><audio controls src="samples/part2/12/generated.wav"></audio></div></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <section class="container" id="section3">
+        <h2>3 Emergent Paralinguistic Imitation</h2>
+        <h4><font class="highlight">In certain cases, beyond timbre and prosody, the model also imitates subtle paralinguistic events present in the style reference</font>—e.g., sighs, scoffs, throat clears, inhales, hums—and reproduces them in the synthesized speech. The samples below illustrate this incidental yet consistent behavior of our dual-reference design.</h4>
+        <div class="demo-section">
+            <div class="table-container">
+                <table class="zebra-table">
+                    <thead>
+                        <tr>
+                            <th style="width:300px;">Timbre Reference</th>
+                            <th style="width:300px;">Style Reference</th>
+                            <th>Target Text</th>
+                            <th style="width:300px;">Synthesized</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part3/01/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/01/source_style.wav"></audio></div></td>
+                        <td class="target-text">Stop fooling yourself, deep inside you have known the real answer all along. [inhale]</td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/01/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part3/02/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/02/source_style.wav"></audio></div></td>
+                        <td class="target-text">[scoff]Hurry up! We are running super late! I am already on my way, but I can not wait to see you.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/02/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part3/03/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/03/source_style.wav"></audio></div></td>
+                        <td class="target-text">[deep inhale]Do you actually believe I&#x27;d buy any more of your pathetic, transparent lies?</td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/03/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part3/04/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/04/source_style.wav"></audio></div></td>
+                        <td class="target-text">[eh]Oh my god, you look absolutely stunning in that outfit, it really suits you.</td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/04/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part3/05/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/05/source_style.wav"></audio></div></td>
+                        <td class="target-text">[throat clear]Do you actually believe I&#x27;d buy any more of your pathetic, transparent lies?</td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/05/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part3/06/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/06/source_style.wav"></audio></div></td>
+                        <td class="target-text">[scoff]I&#x27;ve truly given everything I had, what more could you possibly want from me?</td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/06/generated.wav"></audio></div></td>
+                    </tr>
+                    <tr>
+                        <td><div class="demo-item"><audio controls src="samples/part3/07/source_timbre.wav"></audio></div></td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/07/source_style.wav"></audio></div></td>
+                        <td class="target-text">[sigh]够了，你以为我会相信你这些胡编的瞎话吗？</td>
+                        <td><div class="demo-item"><audio controls src="samples/part3/07/generated.wav"></audio></div></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <div class="footer">
+        <p>Anonymous</p>
+    </div>
+
+</body>
+</html>
